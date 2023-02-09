@@ -1,18 +1,16 @@
 import pytest
 import yaml
-from selenium import webdriver
 import requests
 
 
-PHONE_NUMBER = "09193619468"
-
+BASE_URL = "https://demo-dknow-api.digikala.com"
 
 class TestBaseConfigDriver:
 
     base_url = ""
 
     def setup_method(self):
-        self.base_url = "https://demo-dknow-api.digikala.com"
+        self.base_url = BASE_URL
 
     def teardown_method(self):
         pass
@@ -48,6 +46,14 @@ def api_confirm_phone(api_login_register):
     return response
 
 
-
+@pytest.fixture()
+def api_set_address(api_confirm_phone, read_yaml_file):
+    final_token = api_confirm_phone.json()['data']['token']
+    path = '/address/'f"{read_yaml_file['address_id']}"'/set-default/'
+    headers = {
+        "Authorization": f"{final_token}"
+    }
+    response = requests.post(BASE_URL + path, headers=headers)
+    return response
 
 
