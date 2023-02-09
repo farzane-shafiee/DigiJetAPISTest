@@ -1,19 +1,18 @@
 import requests
-
-from tests.conftest import TestBaseConfigDriver, PHONE_NUMBER
+from tests.conftest import TestBaseConfigDriver, BASE_URL
 
 
 class TestLogIn(TestBaseConfigDriver):
 
     def _handel_register_phone_number_invalid(self, phone):
-        path = "https://demo-dknow-api.digikala.com/user/login-register/"
+        path = "user/login-register/"
         payload = dict(
             phone=phone
         )
-        response = requests.post(path, payload)
+        response = requests.post(BASE_URL + path, payload)
         return response
 
-    def test_api_login_register_valid(self, api_login_register):
+    def test_should_validate_phone_number(self, api_login_register):
         assert api_login_register.status_code == 200
         assert api_login_register.json()['data']['user_id'] != ""
         assert api_login_register.json()['data']['token'] != ""
@@ -50,12 +49,9 @@ class TestLogIn(TestBaseConfigDriver):
         assert invalid_rsp.json()['status'] == 400
         assert invalid_rsp.json()['message'] == "شماره تلفن نامعتبر است."
 
-    def test_api_confirm_phone(self, api_confirm_phone):
+    def test_should_validate_otp(self, api_confirm_phone, read_yaml_file):
         assert api_confirm_phone.status_code == 200
         expected_phone = None
         for key, value in api_confirm_phone.json()['data']['in_track'].items():
             expected_phone = value['phone']
-        assert PHONE_NUMBER[1::] == expected_phone[3::]
-
-    def test_api_far(self, api_confirm_phone):
-        final_token = api_confirm_phone.json()['data']['token']
+        assert read_yaml_file['phone_number'][1::] == expected_phone[3::]
