@@ -25,13 +25,20 @@ class TestOrder(TestBaseConfigDriver):
         assert api_products.json()['data']['products'] != ""
 
     def test_should_add_cart_amazing(self, api_add_cart_amazing):
-        assert api_add_cart_amazing.status_code == 200
-        # assert api_add_cart_amazing.json()['data']['cart_shipment']['hash_id'] != ""
-        # assert api_add_cart_amazing.json()['data']['cart_shipment']['cart_items']['items[0]']['item_id'] != ""
-        # assert api_add_cart_amazing.json()['data']['cart_shipment']['cart_items']['items[0]']['product']['id'] == api_add_cart_amazing.shop_product_id
+        assert api_add_cart_amazing[0].status_code == 200
+        assert api_add_cart_amazing[0].json()['data']['cart_shipment']['hash_id'] != ""
+        assert api_add_cart_amazing[0].json()['data']['cart_shipment']['cart_items']['items'][0]['item_id'] != ""
+        assert api_add_cart_amazing[0].json()['data']['cart_shipment']['cart_items']['items'][0]['product']['id']\
+               == api_add_cart_amazing[1]
 
-    def test_should_add_cart_simple(self, api_add_cart_simple, shop_product_id):
-        assert api_add_cart_simple.status_code == 200
-        assert api_add_cart_simple.json()['data']['cart_shipment']['hash_id'] != ""
-        assert api_add_cart_simple.json()['data']['cart_shipment']['cart_items']['items[0]']['item_id'] != ""
-        assert api_add_cart_simple.json()['data']['cart_shipment']['cart_items']['items[0]']['product']['id'] == shop_product_id
+    def test_should_add_cart_simple(self, api_add_cart_simple):
+        assert api_add_cart_simple[0].status_code == 200
+        assert api_add_cart_simple[0].json()['data']['cart_shipment']['hash_id'] != ""
+        assert api_add_cart_simple[0].json()['data']['cart_shipment']['cart_items']['items'][0]['item_id'] != ""
+        assert api_add_cart_simple[0].json()['data']['cart_shipment']['cart_items']['items'][0]['product']['id']\
+               == api_add_cart_simple[1]
+
+    def test_should_shipping(self, api_shipping):
+        assert api_shipping.status_code == 200
+        assert api_shipping.json()['data']['cart_shipments'][0]['address']['id'] != ""
+        assert api_shipping.json()['data']['cart_shipments'][0]['address']['address'] != ""

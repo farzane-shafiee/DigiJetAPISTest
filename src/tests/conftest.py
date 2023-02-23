@@ -1,5 +1,5 @@
 import json
-
+import requests
 import pytest
 import yaml
 import requests
@@ -26,12 +26,11 @@ def read_yaml_file():
 
 @pytest.fixture()
 def api_login_register(read_yaml_file):
-    path = "https://demo-dknow-api.digikala.com/user/login-register/"
+    path = "/user/login-register/"
     payload = dict(
         phone=read_yaml_file['phone_number']
     )
-    response = requests.post(path, payload)
-
+    response = requests.post(BASE_URL + path, payload)
     return response
 
 
@@ -85,7 +84,7 @@ def api_shipping_fee_shop_and_cart_close_limit(read_yaml_file):
 @pytest.fixture()
 def api_shop(read_yaml_file, api_confirm_phone):
     final_token = api_confirm_phone.json()['data']['token']
-    path = '/shop/'f"{read_yaml_file['shop_id']}"'/'
+    path = f"/shop/{read_yaml_file['shop_id']}/"
     headers = {
         "Authorization": f"{final_token}"
     }
@@ -101,33 +100,44 @@ def api_products(read_yaml_file):
 
 
 @pytest.fixture()
-def api_add_cart_amazing(api_shop):
+def api_add_cart_amazing(api_shop, api_confirm_phone):
+    final_token = api_confirm_phone.json()['data']['token']
     path = "/cart/add/"
-    # shop_product_id = None
-    # for k, v in api_shop.json()['data']["body"].items():
-    #     for index in v:
-    #         print(f"id = {index['data']['products'][0]['id']}")
-
-    # shop_product_id = api_shop.json()['data']['body']['widgets'][0]['data']['products'][0]['id']
-    # print(shop_product_id)
-    shop_id = api_shop.json()['data']['body']['widgets'][0]['data']['products'][0]['id']
-    payload = {
-        "shop_product_id": shop_id,
-        "source": "web"
+    headers = {
+        "Authorization": f"{final_token}"
     }
-
-    response = requests.post(BASE_URL + path, payload)
-    print(response.json())
-    return response
+    shop_product_id = api_shop.json()['data']['body']['widgets'][0]['data']['products'][0]['id']
+    payload = dict(
+        shop_product_id=shop_product_id,
+        source="web"
+    )
+    response = requests.post(BASE_URL + path, payload, headers=headers)
+    return response, shop_product_id
 
 
 @pytest.fixture()
-def api_add_cart_simple(api_shop):
+def api_add_cart_simple(api_shop, api_confirm_phone):
+    final_token = api_confirm_phone.json()['data']['token']
     path = "/cart/add/"
-    # shop_product_id = api_shop.json()['data']['body']['widgets[2]']['data']['products[0]']['id']
+    headers = {
+        "Authorization": f"{final_token}"
+    }
+    shop_product_id = api_shop.json()['data']['body']['widgets'][2]['data']['products'][0]['id'],
     payload = dict(
-        shop_product_id=f"{api_shop.json()['data']['body']['widgets[2]']['data']['products[0]']['id']}",
+        shop_product_id=shop_product_id,
         source="web"
     )
-    response = requests.post(BASE_URL + path, payload)
+    response = requests.post(BASE_URL + path, payload, headers=headers)
+    return response, shop_product_id
+
+
+@pytest.fixture()
+def api_shipping(api_add_cart_simple, api_confirm_phone):
+    final_token = api_confirm_phone.json()['data']['token']
+    cart_shipment_id = api_add_cart_simple.json()['data']['cart_shipment']['hash_id']
+    path = f"/shipping/{cart_shipment_id}/"
+    headers = {
+        "Authorization": f"{final_token}"
+    }
+    response = requests.get(BASE_URL + path, headers=headers)
     return response

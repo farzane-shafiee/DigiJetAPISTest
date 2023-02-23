@@ -5,7 +5,7 @@ from tests.conftest import TestBaseConfigDriver, BASE_URL
 class TestLogIn(TestBaseConfigDriver):
 
     def _handel_register_phone_number_invalid(self, phone):
-        path = "user/login-register/"
+        path = "/user/login-register/"
         payload = dict(
             phone=phone
         )
