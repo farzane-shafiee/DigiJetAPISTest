@@ -36,13 +36,13 @@ def api_login_register(read_yaml_file):
 
 @pytest.fixture()
 def api_confirm_phone(api_login_register):
-    path = 'https://demo-dknow-api.digikala.com/user/confirm-phone/'
+    path = '/user/confirm-phone/'
     payload = dict(
         token=f"{api_login_register.json()['data']['token']}",
         code=111111,
         phone=f"{api_login_register.json()['data']['phone']}",
     )
-    response = requests.post(path, payload)
+    response = requests.post(BASE_URL + path, payload)
     return response
 
 
@@ -84,7 +84,8 @@ def api_shipping_fee_shop_and_cart_close_limit(read_yaml_file):
 @pytest.fixture()
 def api_shop(read_yaml_file, api_confirm_phone):
     final_token = api_confirm_phone.json()['data']['token']
-    path = f"/shop/{read_yaml_file['shop_id']}/"
+    shop_id = read_yaml_file['shop_id']
+    path = '/shop/'f"{shop_id}"'/'
     headers = {
         "Authorization": f"{final_token}"
     }
@@ -137,7 +138,19 @@ def api_shipping(api_add_cart_simple, api_confirm_phone):
     cart_shipment_id = api_add_cart_simple.json()['data']['cart_shipment']['hash_id']
     path = f"/shipping/{cart_shipment_id}/"
     headers = {
-        "Authorization": f"{final_token}"
+        "Authorization": final_token
+    }
+    response = requests.get(BASE_URL + path, headers=headers)
+    return response
+
+
+@pytest.fixture()
+def api_payment(api_confirm_phone, api_shipping):
+    final_token = api_confirm_phone.json()['data']['token']
+    cart_shipment_id = api_add_cart_simple.json()['data']['cart_shipment']['hash_id']
+    path = f"/payment/{cart_shipment_id}/"
+    headers = {
+        "Authorization": final_token
     }
     response = requests.get(BASE_URL + path, headers=headers)
     return response

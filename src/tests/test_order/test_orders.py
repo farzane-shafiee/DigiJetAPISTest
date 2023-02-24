@@ -42,3 +42,10 @@ class TestOrder(TestBaseConfigDriver):
         assert api_shipping.status_code == 200
         assert api_shipping.json()['data']['cart_shipments'][0]['address']['id'] != ""
         assert api_shipping.json()['data']['cart_shipments'][0]['address']['address'] != ""
+
+    def test_should_payment(self, api_payment, api_shipping):
+        assert api_payment.status_code == 200
+        assert api_payment.json()['data']['total_price']['payable_price'] == \
+               api_shipping.json()['data']['cart_shipments'][0]['price']['payable_price']
+        assert api_payment.json()['data']['shop']['id'] == \
+               api_shipping.json()['data']['cart_shipments'][0]['shop']['id']
