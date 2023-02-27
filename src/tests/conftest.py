@@ -87,7 +87,8 @@ def api_shop(read_yaml_file, api_confirm_phone):
     shop_id = read_yaml_file['shop_id']
     path = '/shop/'f"{shop_id}"'/'
     headers = {
-        "Authorization": f"{final_token}"
+        "Authorization": f"{final_token}",
+        "client": f"{read_yaml_file['client']}"
     }
     response = requests.get(BASE_URL + path, headers=headers)
     return response
@@ -117,19 +118,24 @@ def api_add_cart_amazing(api_shop, api_confirm_phone):
 
 
 @pytest.fixture()
-def api_add_cart_simple(api_shop, api_confirm_phone):
+def api_add_cart_simple(api_shop, api_confirm_phone, read_yaml_file):
     final_token = api_confirm_phone.json()['data']['token']
     path = "/cart/add/"
     headers = {
         "Authorization": f"{final_token}"
     }
-    shop_product_id = api_shop.json()['data']['body']['widgets'][2]['data']['products'][0]['id'],
-    payload = dict(
-        shop_product_id=shop_product_id,
-        source="web"
-    )
-    response = requests.post(BASE_URL + path, payload, headers=headers)
-    return response, shop_product_id
+    for item in api_shop.json()['data']['body']['widgets']:
+        if item['data']['title'] in ["قفسه‌ها", "قبلا این‌ها را خریده‌اید", "تخفیف‌دارها"]:
+            print("ok")
+            print(item['data']['products'][0]['id'])
+        else:
+            shop_product_id = item['data']['products'][0]['id']
+            payload = dict(
+                shop_product_id=shop_product_id,
+                source="web"
+            )
+            response = requests.post(BASE_URL + path, payload, headers=headers)
+            return response, shop_product_id
 
 
 @pytest.fixture()
