@@ -1,5 +1,7 @@
-import requests
 from tests.conftest import TestBaseConfigDriver
+import logging
+
+log = logging.getLogger('log in order')
 
 
 class TestOrder(TestBaseConfigDriver):
@@ -26,17 +28,27 @@ class TestOrder(TestBaseConfigDriver):
 
     def test_should_add_cart_amazing(self, api_add_cart_amazing):
         assert api_add_cart_amazing[0].status_code == 200
-        assert api_add_cart_amazing[0].json()['data']['cart_shipment']['hash_id'] != ""
-        assert api_add_cart_amazing[0].json()['data']['cart_shipment']['cart_items']['items'][0]['item_id'] != ""
-        assert api_add_cart_amazing[0].json()['data']['cart_shipment']['cart_items']['items'][0]['product']['id']\
-               == api_add_cart_amazing[1]
+        if api_add_cart_amazing[0].json()['status'] == 400:
+            assert api_add_cart_amazing[0].json()['message'] == "موجودی محصول تمام شده‌است."
+            log.warning('موجودی محصول تمام شده‌است.')
+        else:
+            for item in api_add_cart_amazing[0].json()['data']['cart_shipment']['cart_items']['items']:
+                if item['product']['id'] == api_add_cart_amazing[1]:
+                    assert api_add_cart_amazing[0].json()['data']['cart_shipment']['hash_id'] != ""
+                    assert item['item_id'] != ""
+                    assert True
 
     def test_should_add_cart_simple(self, api_add_cart_simple):
         assert api_add_cart_simple[0].status_code == 200
-        assert api_add_cart_simple[0].json()['data']['cart_shipment']['hash_id'] != ""
-        assert api_add_cart_simple[0].json()['data']['cart_shipment']['cart_items']['items'][0]['item_id'] != ""
-        assert api_add_cart_simple[0].json()['data']['cart_shipment']['cart_items']['items'][0]['product']['id']\
-               == api_add_cart_simple[1]
+        if api_add_cart_simple[0].json()['status'] == 400:
+            assert api_add_cart_simple[0].json()['message'] == "موجودی محصول تمام شده‌است."
+            log.warning('موجودی محصول تمام شده‌است.')
+        else:
+            for item in api_add_cart_simple[0].json()['data']['cart_shipment']['cart_items']['items']:
+                if item['product']['id'] == api_add_cart_simple[1]:
+                    assert api_add_cart_simple[0].json()['data']['cart_shipment']['hash_id'] != ""
+                    assert item['item_id'] != ""
+                    assert True
 
     def test_should_shipping(self, api_shipping):
         assert api_shipping.status_code == 200

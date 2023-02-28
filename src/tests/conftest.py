@@ -1,10 +1,21 @@
-import json
-import requests
+import logging
 import pytest
 import yaml
 import requests
+import os
 
+log = logging.getLogger('log in fixture')
 BASE_URL = "https://demo-dknow-api.digikala.com"
+
+
+def pytest_logger_config(logger_config):
+    logger_config.add_loggers(['log', 'warning'], stdout_level='info')
+    logger_config.set_log_option_default('log,warning')
+
+
+@pytest.hookimpl
+def pytest_logger_logdirlink(config):
+    return os.path.join(os.path.dirname(__file__), 'mylogs')
 
 
 class TestBaseConfigDriver:
@@ -104,17 +115,22 @@ def api_products(read_yaml_file):
 @pytest.fixture()
 def api_add_cart_amazing(api_shop, api_confirm_phone):
     final_token = api_confirm_phone.json()['data']['token']
+    log.info('get token')
     path = "/cart/add/"
     headers = {
         "Authorization": f"{final_token}"
     }
-    shop_product_id = api_shop.json()['data']['body']['widgets'][0]['data']['products'][0]['id']
-    payload = dict(
-        shop_product_id=shop_product_id,
-        source="web"
-    )
-    response = requests.post(BASE_URL + path, payload, headers=headers)
-    return response, shop_product_id
+    for item in api_shop.json()['data']['body']['widgets']:
+        if item['data']['title'] in "تخفیف‌دارها":
+            shop_product_id = item['data']['products'][0]['id']
+            payload = dict(
+                shop_product_id=shop_product_id,
+                source="web"
+            )
+            response = requests.post(BASE_URL + path, payload, headers=headers)
+            return response, shop_product_id
+        else:
+            continue
 
 
 @pytest.fixture()
@@ -126,8 +142,7 @@ def api_add_cart_simple(api_shop, api_confirm_phone, read_yaml_file):
     }
     for item in api_shop.json()['data']['body']['widgets']:
         if item['data']['title'] in ["قفسه‌ها", "قبلا این‌ها را خریده‌اید", "تخفیف‌دارها"]:
-            print("ok")
-            print(item['data']['products'][0]['id'])
+            continue
         else:
             shop_product_id = item['data']['products'][0]['id']
             payload = dict(
