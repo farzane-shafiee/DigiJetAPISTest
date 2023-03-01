@@ -50,9 +50,9 @@ class TestLogIn(TestBaseConfigDriver):
         assert invalid_rsp.json()['message'] == "شماره تلفن نامعتبر است."
 
     def test_should_validate_otp(self, api_confirm_phone, read_yaml_file):
-        assert api_confirm_phone.status_code == 200
+        assert api_confirm_phone[0].status_code == 200
         expected_phone = None
-        for key, value in api_confirm_phone.json()['data']['in_track'].items():
+        for key, value in api_confirm_phone[0].json()['data']['in_track'].items():
             expected_phone = value['phone']
         assert read_yaml_file['phone_number'][1::] == expected_phone[3::]
-        assert api_confirm_phone.json()['data']['user_id'] != ""
+        assert api_confirm_phone[0].json()['data']['user_id'] != ""
