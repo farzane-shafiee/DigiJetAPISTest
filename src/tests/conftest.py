@@ -4,18 +4,18 @@ import yaml
 import requests
 import os
 
-log = logging.getLogger('log in fixture')
+log = logging.getLogger('*** fixture ***')
 BASE_URL = "https://demo-dknow-api.digikala.com"
 
 
-def pytest_logger_config(logger_config):
-    logger_config.add_loggers(['log', 'warning'], stdout_level='info')
-    logger_config.set_log_option_default('log,warning')
-
-
-@pytest.hookimpl
-def pytest_logger_logdirlink(config):
-    return os.path.join(os.path.dirname(__file__), 'mylogs')
+# def pytest_logger_config(logger_config):
+#     logger_config.add_loggers(['log', 'warning'], stdout_level='info')
+#     logger_config.set_log_option_default('log,warning')
+#
+#
+# @pytest.hookimpl(hookwrapper=True)
+# def pytest_logger_logdirlink(config):
+#     return os.path.join(os.path.dirname(__file__), 'mylogs')
 
 
 class TestBaseConfigDriver:
@@ -32,7 +32,7 @@ class TestBaseConfigDriver:
 def read_yaml_file():
     with open('resource.yml') as file:
         yaml_file = yaml.safe_load(file)
-        log.info('*** Read Yaml file. ***')
+        # log.info('*** Read Yaml file. ***')
         return yaml_file
 
 
@@ -43,7 +43,7 @@ def api_login_register(read_yaml_file):
         phone=read_yaml_file['phone_number']
     )
     response = requests.post(BASE_URL + path, payload)
-    log.info('*** API phone is run. ***')
+    # log.info('*** API phone is run. ***')
     return response
 
 
@@ -57,7 +57,7 @@ def api_confirm_phone(api_login_register):
     )
     response = requests.post(BASE_URL + path, payload)
     final_token = response.json()['data']['token']
-    log.info('*** API OTP is run. ***')
+    # log.info('*** API OTP is run. ***')
     return response, final_token
 
 
@@ -68,8 +68,7 @@ def api_set_address(read_yaml_file, api_confirm_phone):
         "Authorization": f"{api_confirm_phone[1]}"
     }
     response = requests.post(BASE_URL + path, headers=headers)
-    log.info('*** API set address is run. ***')
-    print(api_confirm_phone[1])
+    # log.info('*** API set address is run. ***')
     return response
 
 
@@ -81,6 +80,7 @@ def api_shipping_fee_plan(read_yaml_file):
         free_shipping_threshold=read_yaml_file['free_shipping_threshold']
     )
     response = requests.post(path, payload)
+    # log.info('*** API create shipping fee plan is run. ***')
     return response
 
 
@@ -94,6 +94,7 @@ def api_shipping_fee_shop_and_cart_close_limit(read_yaml_file):
         cart_close_limit=read_yaml_file['cart_close_limit']
     )
     response = requests.post(path, payload)
+    # log.info('*** API set shipping fee plan is run. ****')
     return response
 
 
@@ -106,7 +107,7 @@ def api_shop(read_yaml_file, api_confirm_phone):
         "client": f"{read_yaml_file['client']}"
     }
     response = requests.get(BASE_URL + path, headers=headers)
-    log.info('*** API shop is run. ***')
+    # log.info('*** API shop is run. ***')
     return response
 
 
@@ -114,7 +115,7 @@ def api_shop(read_yaml_file, api_confirm_phone):
 def api_products(read_yaml_file):
     path = '/shop/'f"{read_yaml_file['shop_id']}"'/10/products/'
     response = requests.get(BASE_URL + path)
-    log.info('*** API products is run. ***')
+    # log.info('*** API products is run. ***')
     return response
 
 
@@ -132,7 +133,7 @@ def api_add_cart_amazing(api_shop, api_confirm_phone):
                 source="web"
             )
             response = requests.post(BASE_URL + path, payload, headers=headers)
-            log.info('*** API add cart amazing is run. ***')
+            # log.info('*** API add cart amazing product is run. ***')
             return response, shop_product_id
         else:
             continue
@@ -155,36 +156,40 @@ def api_add_cart_simple(api_shop, api_confirm_phone):
                 source="web"
             )
             response = requests.post(BASE_URL + path, payload, headers=headers)
-            log.info('*** API add cart simple is run. ***')
-            cart_shipment_id = response.json()['data']['cart_shipment']['hash_id']
-            return response, shop_product_id, cart_shipment_id
+            # log.info('*** API add cart simple product is run. ***')
+            if response.json()['status'] == 200:
+                cart_shipment_id = response.json()['data']['cart_shipment']['hash_id']
+                print(cart_shipment_id)
+                return response, shop_product_id, cart_shipment_id
+            elif response.json()['status'] == 400:
+                return False
     return False
 
 
 @pytest.fixture(scope="session")
 def api_shipping(api_confirm_phone, api_add_cart_simple):
-    if api_add_cart_simple[2] != 0:
+    if api_add_cart_simple is not False:
         path = f"/shipping/{api_add_cart_simple[2]}/"
         headers = {
             "Authorization": f"{api_confirm_phone[1]}"
         }
         response = requests.get(BASE_URL + path, headers=headers)
-        log.info('*** API shipping is run. ***')
+        # log.info('*** API shipping is run. ***')
         return response
-    elif api_add_cart_simple[2] == 0:
+    elif api_add_cart_simple is False:
         return False
 
 
 @pytest.fixture()
 def api_payment(api_confirm_phone, api_add_cart_simple):
-    if api_add_cart_simple[2] != 0:
+    if api_add_cart_simple is not False:
         # final_token = api_confirm_phone.json()['data']['token']
         path = f"/payment/{api_add_cart_simple[2]}/"
         headers = {
             "Authorization": f"{api_confirm_phone[1]}"
         }
         response = requests.get(BASE_URL + path, headers=headers)
-        log.info('*** API payment is run. ***')
+        # log.info('*** API payment is run. ***')
         return response
-    elif api_add_cart_simple[2] == 0:
+    elif api_add_cart_simple is False:
         return False
