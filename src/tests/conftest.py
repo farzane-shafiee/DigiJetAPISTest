@@ -57,8 +57,9 @@ def api_confirm_phone(api_login_register):
     )
     response = requests.post(BASE_URL + path, payload)
     final_token = response.json()['data']['token']
+    user_id = response.json()['data']['user_id']
     # log.info('*** API OTP is run. ***')
-    return response, final_token
+    return response, final_token, user_id
 
 
 @pytest.fixture()
@@ -181,6 +182,27 @@ def api_shipping(api_confirm_phone, api_add_cart_simple):
 
 
 @pytest.fixture()
+def api_get_balance(api_confirm_phone):
+    path = "/wallet/get-balance/"
+    headers = {
+        "Authorization": f"{api_confirm_phone[1]}"
+    }
+    response = requests.get(BASE_URL + path, headers=headers)
+    return response
+
+
+@pytest.fixture()
+def api_gift_cards(api_confirm_phone):
+    path = "/giftcards/"
+    headers = {
+        "Authorization": f"{api_confirm_phone[1]}"
+    }
+    response = requests.get(BASE_URL + path, headers=headers)
+    gift_card_id = response.json()['data']['with_balance'][0]['id']
+    return response, gift_card_id
+
+
+@pytest.fixture()
 def api_payment(api_confirm_phone, api_add_cart_simple):
     if api_add_cart_simple is not False:
         # final_token = api_confirm_phone.json()['data']['token']
@@ -193,3 +215,16 @@ def api_payment(api_confirm_phone, api_add_cart_simple):
         return response
     elif api_add_cart_simple is False:
         return False
+
+
+@pytest.fixture()
+def api_set_voucher(api_confirm_phone):
+    path = "/api/intrack/voucher/"
+    payload = dict(
+        user_ids=[f"{api_confirm_phone[2]}"],
+        expiry_date="2024-01-04 14:45:20",
+        discount_amount=100000
+    )
+    response = requests.post(BASE_URL + path, payload)
+    voucher = response.json()['code'][0]
+    return response, voucher

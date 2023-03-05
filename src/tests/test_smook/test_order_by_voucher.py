@@ -28,8 +28,10 @@ class TestVoucher(TestBaseConfigDriver):
         self.parent.test_should_show_products(api_products)
         self.parent.test_should_add_cart_simple(api_add_cart_simple)
         self.parent.test_should_shipping(api_shipping)
-    # def test_should_set_voucher(self, api_set_voucher):
-    #     assert api_set_voucher.status_code == 200
+
+    def test_should_set_voucher(self, api_set_voucher):
+        assert api_set_voucher.status_code == 201
+        assert api_set_voucher.json()['status'] == "success"
 
     # def test_payment(self, api_shipping, api_payment):
     #     self.test_should_payment(api_shipping, api_payment)

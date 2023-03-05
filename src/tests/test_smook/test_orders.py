@@ -53,7 +53,6 @@ class TestOrder(TestBaseConfigDriver):
     def test_should_add_cart_simple(self, api_add_cart_simple):
         if api_add_cart_simple is False:
             log.warning('*** Add cart: products not added ***')
-            # log.warning('*** has stock is false. ***')
             assert True
         else:
             assert api_add_cart_simple[0].status_code == 200
@@ -76,6 +75,12 @@ class TestOrder(TestBaseConfigDriver):
             assert api_shipping.json()['data']['cart_shipments'][0]['address']['id'] != ""
             assert api_shipping.json()['data']['cart_shipments'][0]['address']['address'] != ""
             log.info('*** API shipping is run. ***')
+
+    def test_get_balance(self, api_get_balance):
+        assert api_get_balance.status_code == 200
+
+    def test_gift_cards(self, api_gift_cards):
+        assert api_gift_cards.status_code == 200
 
     def test_should_payment(self, api_payment, api_shipping):
         if api_payment is False:
