@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 .idea/
 *.yml
-__init__.py
-.reports/
+src/*/__init__.py
+src/reports/
 
