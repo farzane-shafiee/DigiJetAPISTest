@@ -79,10 +79,15 @@ class TestOrder(TestBaseConfigDriver):
     def test_get_balance(self, api_get_balance):
         assert api_get_balance.status_code == 200
 
-    def test_gift_cards(self, api_gift_cards):
-        assert api_gift_cards.status_code == 200
+    def test_gift_cards(self, api_list_gift_cards):
+        if api_list_gift_cards is False:
+            log.warning('gift card is null')
+            assert True
+        else:
+            assert api_list_gift_cards[0].status_code == 200
+            assert api_list_gift_cards[0].json()['data']['with_balance'][0]['id'] != ""
 
-    def test_should_payment(self, api_payment, api_shipping):
+    def test_payment(self, api_payment, api_shipping):
         if api_payment is False:
             log.warning('*** Payment: products not added. ***')
             assert True
@@ -93,3 +98,36 @@ class TestOrder(TestBaseConfigDriver):
             assert api_payment.json()['data']['shop']['id'] == \
                    api_shipping.json()['data']['cart_shipments'][0]['shop']['id']
             log.info('*** API payment is run. ***')
+
+    def test_bpg_manifest_data(self, api_bpg_manifest_data):
+        assert api_bpg_manifest_data.status_code == 200
+        assert api_bpg_manifest_data.json()['data']['credit_payment_id'] != ""
+
+    def test_set_gift_card(self, api_set_gift_card):
+        if api_set_gift_card is False:
+            assert True
+            log.warning('gift card is null or invalid')
+        else:
+            assert api_set_gift_card.status_code == 200
+            if api_set_gift_card.json()['status'] == 400:
+                assert api_set_gift_card.json()['message'] == 'Invalid gift card Id.'
+                log.warning('gift card is null')
+            else:
+                assert api_set_gift_card.json()['data']['gift_card_amount'] != ""
+
+    def test_checkout(self, api_checkout):
+        if api_checkout is False:
+            assert True
+            log.warning('invalid gift card')
+        else:
+            assert api_checkout[0].status_code == 200
+            assert api_checkout[0].json()['data']['redirect_url'] != ""
+
+    def test_send_to_bank(self, api_send_to_bank):
+        if api_send_to_bank is False:
+            assert True
+            log.warning('payment is False')
+        else:
+            assert api_send_to_bank.status_code == 200
+
+

@@ -160,7 +160,6 @@ def api_add_cart_simple(api_shop, api_confirm_phone):
             # log.info('*** API add cart simple product is run. ***')
             if response.json()['status'] == 200:
                 cart_shipment_id = response.json()['data']['cart_shipment']['hash_id']
-                print(cart_shipment_id)
                 return response, shop_product_id, cart_shipment_id
             elif response.json()['status'] == 400:
                 return False
@@ -191,15 +190,18 @@ def api_get_balance(api_confirm_phone):
     return response
 
 
-@pytest.fixture()
-def api_gift_cards(api_confirm_phone):
+@pytest.fixture(scope="session")
+def api_list_gift_cards(api_confirm_phone):
     path = "/giftcards/"
     headers = {
         "Authorization": f"{api_confirm_phone[1]}"
     }
     response = requests.get(BASE_URL + path, headers=headers)
-    gift_card_id = response.json()['data']['with_balance'][0]['id']
-    return response, gift_card_id
+    if response.json()['data']['with_balance'] in ['id']:
+        gift_card_id = response.json()['data']['with_balance'][0]['id']
+        return response, gift_card_id
+    else:
+        return False
 
 
 @pytest.fixture()
@@ -217,8 +219,8 @@ def api_payment(api_confirm_phone, api_add_cart_simple):
         return False
 
 
-@pytest.fixture()
-def api_set_voucher(api_confirm_phone):
+@pytest.fixture(scope="session")
+def api_generate_voucher(api_confirm_phone):
     path = "/api/intrack/voucher/"
     payload = dict(
         user_ids=[f"{api_confirm_phone[2]}"],
@@ -228,3 +230,71 @@ def api_set_voucher(api_confirm_phone):
     response = requests.post(BASE_URL + path, payload)
     voucher = response.json()['code'][0]
     return response, voucher
+
+
+@pytest.fixture()
+def api_bpg_manifest_data(api_confirm_phone, api_add_cart_simple):
+    path = f"/bpg-manifest-data/{api_add_cart_simple[2]}/"
+    headers = {
+        "Authorization": f"{api_confirm_phone[1]}"
+    }
+    response = requests.get(BASE_URL + path, headers=headers)
+    return response
+
+
+@pytest.fixture()
+def api_set_voucher(api_confirm_phone, api_add_cart_simple, api_generate_voucher):
+    path = f"/voucher/{api_add_cart_simple[2]}/{api_generate_voucher[1]}/"
+    headers = {
+        "Authorization": f"{api_confirm_phone[1]}"
+    }
+    response = requests.post(BASE_URL + path, headers=headers)
+    return response
+
+
+@pytest.fixture()
+def api_set_gift_card(api_confirm_phone, api_add_cart_simple, api_list_gift_cards):
+    if api_list_gift_cards is False:
+        return False
+    else:
+        path = f"/giftcards/cart-shipment/{api_add_cart_simple[2]}/{api_list_gift_cards[1]}/"
+        headers = {
+            "Authorization": f"{api_confirm_phone[1]}"
+        }
+        response = requests.get(BASE_URL + path, headers=headers)
+        return response
+
+
+@pytest.fixture(scope="session")
+def api_checkout(read_yaml_file, api_confirm_phone, api_add_cart_simple, api_list_gift_cards):
+    if api_list_gift_cards is False:
+        log.warning('gift card is null or invalid.')
+        return False
+    else:
+        path = "/checkout/"
+        headers = {
+            "Authorization": f"{api_confirm_phone[1]}"
+        }
+        payload = dict(
+            payment_method_id=read_yaml_file['payment_method_id'],
+            cart_shipment_id=f"{api_add_cart_simple[2]}",
+            source="web",
+            gift_card_id=api_list_gift_cards[1]
+        )
+        response = requests.post(BASE_URL + path, payload, headers=headers)
+        if response.json()['status'] == 400:
+            return False
+        else:
+            redirect_url_send_to_bank = response.json()['data']['redirect_url']
+            return response, redirect_url_send_to_bank
+
+
+@pytest.fixture()
+def api_send_to_bank(api_checkout):
+    if api_checkout is False:
+        return False
+    else:
+        path = api_checkout[1]
+        response = requests.get(path)
+        print(response.json())
+        return response

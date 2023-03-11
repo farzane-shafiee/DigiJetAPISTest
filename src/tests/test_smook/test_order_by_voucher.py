@@ -29,9 +29,16 @@ class TestVoucher(TestBaseConfigDriver):
         self.parent.test_should_add_cart_simple(api_add_cart_simple)
         self.parent.test_should_shipping(api_shipping)
 
-    def test_should_set_voucher(self, api_set_voucher):
-        assert api_set_voucher.status_code == 201
-        assert api_set_voucher.json()['status'] == "success"
+    def test_generate_voucher(self, api_generate_voucher):
+        assert api_generate_voucher.status_code == 201
+        assert api_generate_voucher.json()['status'] == "success"
+
+    def test_set_voucher(self, api_set_voucher):
+        assert api_set_voucher.status_code == 200
+        if api_set_voucher.json()['status'] == 400:
+            assert api_set_voucher.json()['message'] == 'کد تخفیف وارد شده درست نیست'
+        else:
+            assert api_set_voucher.json()['data']['total_price']['voucher_code'] != ""
 
     # def test_payment(self, api_shipping, api_payment):
     #     self.test_should_payment(api_shipping, api_payment)
