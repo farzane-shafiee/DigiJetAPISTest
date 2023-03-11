@@ -130,5 +130,5 @@ dmypy.json
 .idea/
 *.yml
 src/*/__init__.py
-src/reports/*
+src/reports/
 
