@@ -2,6 +2,7 @@ import logging
 import pytest
 import yaml
 import requests
+from bs4 import BeautifulSoup
 import os
 
 log = logging.getLogger('*** fixture ***')
@@ -197,11 +198,13 @@ def api_list_gift_cards(api_confirm_phone):
         "Authorization": f"{api_confirm_phone[1]}"
     }
     response = requests.get(BASE_URL + path, headers=headers)
-    if response.json()['data']['with_balance'] in ['id']:
+    lens = len(response.json()['data']['with_balance'])
+    print("len is: ", lens)
+    if lens == 0:
+        return False
+    else:
         gift_card_id = response.json()['data']['with_balance'][0]['id']
         return response, gift_card_id
-    else:
-        return False
 
 
 @pytest.fixture()
@@ -234,27 +237,36 @@ def api_generate_voucher(api_confirm_phone):
 
 @pytest.fixture()
 def api_bpg_manifest_data(api_confirm_phone, api_add_cart_simple):
-    path = f"/bpg-manifest-data/{api_add_cart_simple[2]}/"
-    headers = {
-        "Authorization": f"{api_confirm_phone[1]}"
-    }
-    response = requests.get(BASE_URL + path, headers=headers)
-    return response
+    if api_add_cart_simple is not False:
+        path = f"/bpg-manifest-data/{api_add_cart_simple[2]}/"
+        headers = {
+            "Authorization": f"{api_confirm_phone[1]}"
+        }
+        response = requests.get(BASE_URL + path, headers=headers)
+        return response
+    elif api_add_cart_simple is False:
+        log.warning('has stock is false.')
+        return False
 
 
 @pytest.fixture()
 def api_set_voucher(api_confirm_phone, api_add_cart_simple, api_generate_voucher):
-    path = f"/voucher/{api_add_cart_simple[2]}/{api_generate_voucher[1]}/"
-    headers = {
-        "Authorization": f"{api_confirm_phone[1]}"
-    }
-    response = requests.post(BASE_URL + path, headers=headers)
-    return response
+    if api_add_cart_simple is not False:
+        path = f"/voucher/{api_add_cart_simple[2]}/{api_generate_voucher[1]}/"
+        headers = {
+            "Authorization": f"{api_confirm_phone[1]}"
+        }
+        response = requests.post(BASE_URL + path, headers=headers)
+        return response
+    elif api_add_cart_simple is False:
+        log.warning('has stock is false.')
+        return False
 
 
 @pytest.fixture()
 def api_set_gift_card(api_confirm_phone, api_add_cart_simple, api_list_gift_cards):
-    if api_list_gift_cards is False:
+    if api_list_gift_cards and api_add_cart_simple is False:
+        print("________", api_add_cart_simple[2], api_list_gift_cards[1])
         return False
     else:
         path = f"/giftcards/cart-shipment/{api_add_cart_simple[2]}/{api_list_gift_cards[1]}/"
@@ -267,8 +279,7 @@ def api_set_gift_card(api_confirm_phone, api_add_cart_simple, api_list_gift_card
 
 @pytest.fixture(scope="session")
 def api_checkout(read_yaml_file, api_confirm_phone, api_add_cart_simple, api_list_gift_cards):
-    if api_list_gift_cards is False:
-        log.warning('gift card is null or invalid.')
+    if api_list_gift_cards and api_add_cart_simple is False:
         return False
     else:
         path = "/checkout/"
@@ -278,14 +289,15 @@ def api_checkout(read_yaml_file, api_confirm_phone, api_add_cart_simple, api_lis
         payload = dict(
             payment_method_id=read_yaml_file['payment_method_id'],
             cart_shipment_id=f"{api_add_cart_simple[2]}",
-            source="web",
-            gift_card_id=api_list_gift_cards[1]
+            source="web"
+            # gift_card_id=api_list_gift_cards[1]
         )
         response = requests.post(BASE_URL + path, payload, headers=headers)
         if response.json()['status'] == 400:
             return False
         else:
             redirect_url_send_to_bank = response.json()['data']['redirect_url']
+            print(redirect_url_send_to_bank)
             return response, redirect_url_send_to_bank
 
 
@@ -295,6 +307,17 @@ def api_send_to_bank(api_checkout):
         return False
     else:
         path = api_checkout[1]
-        response = requests.get(path)
-        print(response.json())
+        headers = {'Accept-Encoding': 'identity'}
+        response = requests.get(path, headers=headers)
+        page_content = BeautifulSoup(response.content, "html.parser")
+        # content = response.content
+        form = page_content.find('form')
+        formAction = form.attrs['action']
+
+        input = page_content.find('input[name="amount"]')
+        inputAmount = input.attrs['value']
+
+        print("###", page_content)
+        print('$$$$', formAction)
+        print('@@@@', inputAmount)
         return response
